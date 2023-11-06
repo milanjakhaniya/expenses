@@ -4,7 +4,7 @@ class ExcelData(models.Model):
     date = models.DateField()
     time = models.TimeField()
     category = models.TextField(max_length=255)
-    category_code = models.IntegerField()
+    id = models.IntegerField(primary_key=True)
     description = models.TextField(max_length=255)
     payment_mode = models.TextField(max_length=50)
     amount = models.DecimalField(max_digits=25, decimal_places=2)
