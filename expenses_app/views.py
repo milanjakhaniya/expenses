@@ -19,6 +19,7 @@ from openpyxl.worksheet.views import SheetView, Selection
 import os
 from openpyxl.utils import get_column_letter
 
+
 @api_view(['POST'])
 def create_excel(request, sheet_name):
     if request.method == 'POST':
@@ -52,7 +53,8 @@ def create_excel(request, sheet_name):
                     for column_letter, column_name in zip('ABCDEFGHI', default_columns):
                         column = new_sheet.column_dimensions[column_letter]
                         # Adjust the width as needed
-                        column.width = 30 if column_name in ['description', 'complaint'] else 15
+                        column.width = 30 if column_name in [
+                            'description', 'complaint'] else 15
 
                     # Set the alignment for the header row (centered)
                     header_row = new_sheet[2]
@@ -77,7 +79,8 @@ def create_excel(request, sheet_name):
                     for column_letter, column_name in zip('ABCDEFGHI', default_columns):
                         column = new_sheet.column_dimensions[column_letter]
                         # Adjust the width as needed
-                        column.width = 40 if column_name in ['description', 'complaint'] else 15
+                        column.width = 40 if column_name in [
+                            'description', 'complaint'] else 15
 
                     # Set the alignment for the header row (centered)
                     header_row = new_sheet[2]
@@ -105,12 +108,25 @@ def create_excel(request, sheet_name):
                 '%H:%M:%S')  # Format time as HH:mm:ss
 
             # Loop through the JSON objects and add data to the Excel sheet
-            for obj in json_objects:
-                row = [current_date, current_time, obj.get('category'), obj.get('id', 0), obj.get(
-                    'description'), obj.get('payment_mode'), obj.get('bank'), obj.get('amount', 0.0), obj.get('complaint')]
 
-                # Append data to the sheet
-                sheet.append(row)
+            for obj in json_objects:
+                for value in obj.values():
+                    if isinstance(value, str):
+                        if obj.get('payment_mode').lower() == "cash":
+                            if obj.get('bank'):
+                                return JsonResponse({'error': 'Bank name not required..!!'}, status=status.HTTP_400_BAD_REQUEST)
+                            else:
+                                row = [current_date, current_time, obj.get('category'), obj.get('id', 0), obj.get(
+                                    'description'), obj.get('payment_mode'), '', obj.get('amount', 0.0), obj.get('complaint')]
+                                # Append data to the sheet
+                                sheet.append(row)
+                        elif obj.get('bank'):
+                            row = [current_date, current_time, obj.get('category'), obj.get('id', 0), obj.get(
+                                'description'), obj.get('payment_mode'), obj.get('bank'), obj.get('amount', 0.0), obj.get('complaint')]
+                            # Append data to the sheet
+                            sheet.append(row)
+                        else:
+                            return JsonResponse({'error': 'Bank name required..!!'}, status=status.HTTP_400_BAD_REQUEST)
 
             # Freeze headers
             sheet.freeze_panes = 'A3'
@@ -164,25 +180,24 @@ def create_daily_summary_sheet(request, sheet_name):
             # Define the product types and their respective column ranges
             product_types = {
                 'ACCOUNT': (1, 5),
-                'FARMER': (7,7),
-                'VEHICALS': (9,9),
-                'SHOP': (11,11),
-                'OTHER EXPENSE': (13,13),
-                'VOUCHERS': (15,15)
+                'FARMER': (7, 7),
+                'VEHICALS': (9, 9),
+                'SHOP': (11, 11),
+                'OTHER EXPENSE': (13, 13),
+                'VOUCHERS': (15, 15)
                 # Add more product types as needed
             }
 
             default_columns = [
                 'date',
-                'opening_balance',
+                'opening balance',
                 'collection amount',
                 'expenses',
-                'closing_balance',
+                'closing balance',
                 ''
             ]
 
-            all_categories = ['farmer','vehical','shop','other','vouchers']
-
+            all_categories = ['farmer', 'vehical', 'shop', 'other', 'vouchers']
 
             for category in all_categories:
                 if category:
@@ -226,14 +241,16 @@ def create_daily_summary_sheet(request, sheet_name):
             current_date = financial_year_start
             while current_date <= financial_year_end:
                 # Create a new row for each date
-                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '',
+                       '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
                 new_sheet.append(row)
 
                 # Move to the next date
                 current_date += timedelta(days=1)
             workbook.save(file_path)
 
-            coll_name = ['FARMER', 'VEHICALS', 'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
+            coll_name = ['FARMER', 'VEHICALS',
+                         'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
             for row in range(3, 369):
                 if 'FARMER' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "F*", Raw_data_01!A:A, $A{row}), "")'
@@ -242,7 +259,7 @@ def create_daily_summary_sheet(request, sheet_name):
                 if 'VEHICALS' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "V*", Raw_data_01!A:A, $A{row}), "")'
                     new_sheet[f'I{row}'] = sum_of_amount
-                
+
                 if 'SHOP' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "S*", Raw_data_01!A:A, $A{row}), "")'
                     new_sheet[f'K{row}'] = sum_of_amount
@@ -250,7 +267,7 @@ def create_daily_summary_sheet(request, sheet_name):
                 if 'OTHER EXPENSE' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "O*", Raw_data_01!A:A, $A{row}), "")'
                     new_sheet[f'M{row}'] = sum_of_amount
-                
+
                 if 'VOUCHERS' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
@@ -287,7 +304,11 @@ def create_daily_summary_sheet(request, sheet_name):
 
             # Save the updated Excel file again
             workbook.save(file_path)
-            cash_payment(request, sheet_name="Cash_01")            
+            # ADD REQUIRED DEPENDENT SHEETS
+            cash_payment(request, sheet_name="Cash_01")
+            hdfc_payment(request, sheet_name="Hdfc_bank_01")
+            idbi_payment(request, sheet_name="Idbi_bank_01")
+            icici_payment(request, sheet_name="Icici_bank_01")
 
             return JsonResponse({'message': f'Successfully Created {sheet_name} with required sheets & Formulas'}, status=status.HTTP_200_OK)
         except FileNotFoundError as e:
@@ -297,7 +318,8 @@ def create_daily_summary_sheet(request, sheet_name):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=status.HTTP_400_BAD_REQUEST)
 
-######### for cash payments
+# CASH PAYMENTS
+
 
 def cash_payment(request, sheet_name):
     if request.method == 'POST':
@@ -324,32 +346,31 @@ def cash_payment(request, sheet_name):
             # Define the product types and their respective column ranges
             product_types = {
                 'CASH ACCOUNT': (1, 5),
-                'FARMER': (7,7),
-                'VEHICALS': (9,9),
-                'SHOP': (11,11),
-                'OTHER EXPENSE': (13,13),
-                'VOUCHERS': (15,15)
+                'FARMER': (7, 7),
+                'VEHICALS': (9, 9),
+                'SHOP': (11, 11),
+                'OTHER EXPENSE': (13, 13),
+                'VOUCHERS': (15, 15)
                 # Add more product types as needed
             }
 
             default_columns = [
                 'date',
-                'opening_balance',
+                'opening balance',
                 'collection amount',
                 'expenses',
-                'closing_balance',
+                'closing balance',
                 ''
             ]
 
-            all_categories = ['farmer','vehical','shop','other','vouchers']
-
+            all_categories = ['farmer', 'vehical', 'shop', 'other', 'vouchers']
 
             for category in all_categories:
                 if category:
                     default_columns.extend([
                         # 'id',
                         # 'mode',
-                        'cash_amount',
+                        'cash amount',
                         ''
                     ])
 
@@ -386,14 +407,16 @@ def cash_payment(request, sheet_name):
             current_date = financial_year_start
             while current_date <= financial_year_end:
                 # Create a new row for each date
-                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '',
+                       '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
                 new_sheet.append(row)
 
                 # Move to the next date
                 current_date += timedelta(days=1)
             workbook.save(file_path)
 
-            coll_name = ['FARMER', 'VEHICALS', 'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
+            coll_name = ['FARMER', 'VEHICALS',
+                         'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
             for row in range(3, 369):
                 if 'FARMER' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "F*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
@@ -402,7 +425,7 @@ def cash_payment(request, sheet_name):
                 if 'VEHICALS' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "V*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
                     new_sheet[f'I{row}'] = sum_of_amount
-                
+
                 if 'SHOP' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "S*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
                     new_sheet[f'K{row}'] = sum_of_amount
@@ -410,7 +433,7 @@ def cash_payment(request, sheet_name):
                 if 'OTHER EXPENSE' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "O*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
                     new_sheet[f'M{row}'] = sum_of_amount
-                
+
                 if 'VOUCHERS' in coll_name:
                     sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
@@ -447,9 +470,491 @@ def cash_payment(request, sheet_name):
 
             # Save the updated Excel file again
             workbook.save(file_path)
-            
 
-            return JsonResponse({'message': f'Successfully Created Cash_01 sheet with Data & Formulas'}, status=status.HTTP_200_OK)
+            return JsonResponse({'message': f'Successfully Created sheet with Data & Formulas'}, status=status.HTTP_200_OK)
+        except FileNotFoundError as e:
+            return JsonResponse({'error': 'File not found'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=status.HTTP_400_BAD_REQUEST)
+
+# HDFC BANK
+
+
+def hdfc_payment(request, sheet_name):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+
+            # Provide the full path to your Excel file
+            file_path = 'main.xlsx'
+
+            # Check if the file exists
+            if not os.path.isfile(file_path):
+                return JsonResponse({'error': f'File not found at path: {file_path}'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Load the Excel workbook using openpyxl
+            workbook = load_workbook(filename=file_path)
+
+            if sheet_name in workbook.sheetnames:
+                return JsonResponse({'error': f'Sheet "{sheet_name}" already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create a new sheet with the provided sheet_name
+            new_sheet = workbook.create_sheet(title=sheet_name)
+
+            # # Define the default columns and add them to the A2 row
+            # Define the product types and their respective column ranges
+            product_types = {
+                'HDFC ACCOUNT': (1, 5),
+                'FARMER': (7, 7),
+                'VEHICALS': (9, 9),
+                'SHOP': (11, 11),
+                'OTHER EXPENSE': (13, 13),
+                'VOUCHERS': (15, 15)
+                # Add more product types as needed
+            }
+
+            default_columns = [
+                'date',
+                'opening balance',
+                'collection amount',
+                'expenses',
+                'closing balance',
+                ''
+            ]
+
+            all_categories = ['farmer', 'vehical', 'shop', 'other', 'vouchers']
+
+            for category in all_categories:
+                if category:
+                    default_columns.extend([
+                        # 'id',
+                        # 'mode',
+                        'HDFC amount',
+                        ''
+                    ])
+
+            # Merge cells and set titles for each product type dynamically
+            for product_type, (start_col, end_col) in product_types.items():
+                new_sheet.merge_cells(
+                    start_row=1, start_column=start_col, end_row=1, end_column=end_col)
+                title_cell = new_sheet.cell(row=1, column=start_col)
+                title_cell.value = product_type
+                title_cell.alignment = Alignment(horizontal='center')
+
+            for col_num, header in enumerate(default_columns, start=1):
+                new_sheet.cell(row=2, column=col_num, value=header)
+
+            # Set the alignment for the header row (centered)
+            header_row = new_sheet[2]
+            for cell in header_row:
+                cell.alignment = Alignment(horizontal='center')
+
+            # Set column widths for default columns
+            for i, column_name in enumerate(default_columns):
+                # +1 because columns are 1-indexed
+                column_letter = get_column_letter(i + 1)
+                column = new_sheet.column_dimensions[column_letter]
+                # Adjust the width as needed
+                # Minimum width of 12
+                column.width = max(len(column_name) + 2, 14)
+
+            # Define the financial year start and end dates
+            financial_year_start = datetime(2023, 4, 1)
+            financial_year_end = datetime(2024, 3, 31)
+
+            # Iterate over each date within the financial year
+            current_date = financial_year_start
+            while current_date <= financial_year_end:
+                # Create a new row for each date
+                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '',
+                       '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+                new_sheet.append(row)
+
+                # Move to the next date
+                current_date += timedelta(days=1)
+            workbook.save(file_path)
+
+            coll_name = ['FARMER', 'VEHICALS',
+                         'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
+            for row in range(3, 369):
+                if 'FARMER' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "F*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
+                    new_sheet[f'G{row}'] = sum_of_amount
+
+                if 'VEHICALS' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "V*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
+                    new_sheet[f'I{row}'] = sum_of_amount
+
+                if 'SHOP' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "S*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
+                    new_sheet[f'K{row}'] = sum_of_amount
+
+                if 'OTHER EXPENSE' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "O*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
+                    new_sheet[f'M{row}'] = sum_of_amount
+
+                if 'VOUCHERS' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
+                    new_sheet[f'O{row}'] = sum_of_amount
+
+            # cloasing balance
+            for row in range(3, 369):
+                closing_balance = f'=SUM(B{row},C{row},G{row},I{row},K{row},M{row},O{row}) - D{row}'
+                new_sheet[f'E{row}'] = closing_balance
+
+            # Add the formula to the "B" column (opening_balance column) from B4 to B368
+            for row in range(4, 369):
+                formula = f'=IF(E{row - 1}<>0, E{row - 1}, IFERROR(INDEX(E3:E${row - 1}, MATCH(1, E3:E${row - 1}<>0, 0)), LOOKUP(2, 1/(E3:E${row - 1}<>0), E3:E${row - 1})))'
+                new_sheet[f'B{row}'] = formula
+            # Define a function to convert Excel column letters to column index
+
+            def col_letter_to_index(col_letter):
+                result = 0
+                for letter in col_letter:
+                    result = result * 26 + (ord(letter) - ord('A') + 1)
+                return result
+
+            # Format the columns
+            columns_to_format = ['B', 'C', 'D', 'E', 'G', 'I', 'K', 'M', 'O']
+
+            for col_letter in columns_to_format:
+                col_index = col_letter_to_index(col_letter)
+                # Format the columns to display two decimal places
+                for row in new_sheet.iter_rows(min_row=3, max_row=369, min_col=col_index, max_col=col_index):
+                    for cell in row:
+                        cell.number_format = '0.00'
+
+            # Freeze the top row (column names) when scrolling
+            new_sheet.freeze_panes = "A3"
+
+            # Save the updated Excel file again
+            workbook.save(file_path)
+
+            return JsonResponse({'message': f'Successfully Created sheet with Data & Formulas'}, status=status.HTTP_200_OK)
+        except FileNotFoundError as e:
+            return JsonResponse({'error': 'File not found'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=status.HTTP_400_BAD_REQUEST)
+
+# IDBI BANK
+
+
+def idbi_payment(request, sheet_name):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+
+            # Provide the full path to your Excel file
+            file_path = 'main.xlsx'
+
+            # Check if the file exists
+            if not os.path.isfile(file_path):
+                return JsonResponse({'error': f'File not found at path: {file_path}'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Load the Excel workbook using openpyxl
+            workbook = load_workbook(filename=file_path)
+
+            if sheet_name in workbook.sheetnames:
+                return JsonResponse({'error': f'Sheet "{sheet_name}" already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create a new sheet with the provided sheet_name
+            new_sheet = workbook.create_sheet(title=sheet_name)
+
+            # # Define the default columns and add them to the A2 row
+            # Define the product types and their respective column ranges
+            product_types = {
+                'IDBI ACCOUNT': (1, 5),
+                'FARMER': (7, 7),
+                'VEHICALS': (9, 9),
+                'SHOP': (11, 11),
+                'OTHER EXPENSE': (13, 13),
+                'VOUCHERS': (15, 15)
+                # Add more product types as needed
+            }
+
+            default_columns = [
+                'date',
+                'opening balance',
+                'collection amount',
+                'expenses',
+                'closing balance',
+                ''
+            ]
+
+            all_categories = ['farmer', 'vehical', 'shop', 'other', 'vouchers']
+
+            for category in all_categories:
+                if category:
+                    default_columns.extend([
+                        # 'id',
+                        # 'mode',
+                        'IDBI amount',
+                        ''
+                    ])
+
+            # Merge cells and set titles for each product type dynamically
+            for product_type, (start_col, end_col) in product_types.items():
+                new_sheet.merge_cells(
+                    start_row=1, start_column=start_col, end_row=1, end_column=end_col)
+                title_cell = new_sheet.cell(row=1, column=start_col)
+                title_cell.value = product_type
+                title_cell.alignment = Alignment(horizontal='center')
+
+            for col_num, header in enumerate(default_columns, start=1):
+                new_sheet.cell(row=2, column=col_num, value=header)
+
+            # Set the alignment for the header row (centered)
+            header_row = new_sheet[2]
+            for cell in header_row:
+                cell.alignment = Alignment(horizontal='center')
+
+            # Set column widths for default columns
+            for i, column_name in enumerate(default_columns):
+                # +1 because columns are 1-indexed
+                column_letter = get_column_letter(i + 1)
+                column = new_sheet.column_dimensions[column_letter]
+                # Adjust the width as needed
+                # Minimum width of 12
+                column.width = max(len(column_name) + 2, 14)
+
+            # Define the financial year start and end dates
+            financial_year_start = datetime(2023, 4, 1)
+            financial_year_end = datetime(2024, 3, 31)
+
+            # Iterate over each date within the financial year
+            current_date = financial_year_start
+            while current_date <= financial_year_end:
+                # Create a new row for each date
+                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '',
+                       '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+                new_sheet.append(row)
+
+                # Move to the next date
+                current_date += timedelta(days=1)
+            workbook.save(file_path)
+
+            coll_name = ['FARMER', 'VEHICALS',
+                         'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
+            for row in range(3, 369):
+                if 'FARMER' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "F*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
+                    new_sheet[f'G{row}'] = sum_of_amount
+
+                if 'VEHICALS' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "V*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
+                    new_sheet[f'I{row}'] = sum_of_amount
+
+                if 'SHOP' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "S*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
+                    new_sheet[f'K{row}'] = sum_of_amount
+
+                if 'OTHER EXPENSE' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "O*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
+                    new_sheet[f'M{row}'] = sum_of_amount
+
+                if 'VOUCHERS' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
+                    new_sheet[f'O{row}'] = sum_of_amount
+
+            # cloasing balance
+            for row in range(3, 369):
+                closing_balance = f'=SUM(B{row},C{row},G{row},I{row},K{row},M{row},O{row}) - D{row}'
+                new_sheet[f'E{row}'] = closing_balance
+
+            # Add the formula to the "B" column (opening_balance column) from B4 to B368
+            for row in range(4, 369):
+                formula = f'=IF(E{row - 1}<>0, E{row - 1}, IFERROR(INDEX(E3:E${row - 1}, MATCH(1, E3:E${row - 1}<>0, 0)), LOOKUP(2, 1/(E3:E${row - 1}<>0), E3:E${row - 1})))'
+                new_sheet[f'B{row}'] = formula
+            # Define a function to convert Excel column letters to column index
+
+            def col_letter_to_index(col_letter):
+                result = 0
+                for letter in col_letter:
+                    result = result * 26 + (ord(letter) - ord('A') + 1)
+                return result
+
+            # Format the columns
+            columns_to_format = ['B', 'C', 'D', 'E', 'G', 'I', 'K', 'M', 'O']
+
+            for col_letter in columns_to_format:
+                col_index = col_letter_to_index(col_letter)
+                # Format the columns to display two decimal places
+                for row in new_sheet.iter_rows(min_row=3, max_row=369, min_col=col_index, max_col=col_index):
+                    for cell in row:
+                        cell.number_format = '0.00'
+
+            # Freeze the top row (column names) when scrolling
+            new_sheet.freeze_panes = "A3"
+
+            # Save the updated Excel file again
+            workbook.save(file_path)
+
+            return JsonResponse({'message': f'Successfully Created sheet with Data & Formulas'}, status=status.HTTP_200_OK)
+        except FileNotFoundError as e:
+            return JsonResponse({'error': 'File not found'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return JsonResponse({'error': 'Invalid request method'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ICICI BANK PAYMENT
+
+def icici_payment(request, sheet_name):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+
+            # Provide the full path to your Excel file
+            file_path = 'main.xlsx'
+
+            # Check if the file exists
+            if not os.path.isfile(file_path):
+                return JsonResponse({'error': f'File not found at path: {file_path}'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Load the Excel workbook using openpyxl
+            workbook = load_workbook(filename=file_path)
+
+            if sheet_name in workbook.sheetnames:
+                return JsonResponse({'error': f'Sheet "{sheet_name}" already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create a new sheet with the provided sheet_name
+            new_sheet = workbook.create_sheet(title=sheet_name)
+
+            # # Define the default columns and add them to the A2 row
+            # Define the product types and their respective column ranges
+            product_types = {
+                'ICICI ACCOUNT': (1, 5),
+                'FARMER': (7, 7),
+                'VEHICALS': (9, 9),
+                'SHOP': (11, 11),
+                'OTHER EXPENSE': (13, 13),
+                'VOUCHERS': (15, 15)
+                # Add more product types as needed
+            }
+
+            default_columns = [
+                'date',
+                'opening balance',
+                'collection amount',
+                'expenses',
+                'closing balance',
+                ''
+            ]
+
+            all_categories = ['farmer', 'vehical', 'shop', 'other', 'vouchers']
+
+            for category in all_categories:
+                if category:
+                    default_columns.extend([
+                        # 'id',
+                        # 'mode',
+                        'ICICI amount',
+                        ''
+                    ])
+
+            # Merge cells and set titles for each product type dynamically
+            for product_type, (start_col, end_col) in product_types.items():
+                new_sheet.merge_cells(
+                    start_row=1, start_column=start_col, end_row=1, end_column=end_col)
+                title_cell = new_sheet.cell(row=1, column=start_col)
+                title_cell.value = product_type
+                title_cell.alignment = Alignment(horizontal='center')
+
+            for col_num, header in enumerate(default_columns, start=1):
+                new_sheet.cell(row=2, column=col_num, value=header)
+
+            # Set the alignment for the header row (centered)
+            header_row = new_sheet[2]
+            for cell in header_row:
+                cell.alignment = Alignment(horizontal='center')
+
+            # Set column widths for default columns
+            for i, column_name in enumerate(default_columns):
+                # +1 because columns are 1-indexed
+                column_letter = get_column_letter(i + 1)
+                column = new_sheet.column_dimensions[column_letter]
+                # Adjust the width as needed
+                # Minimum width of 12
+                column.width = max(len(column_name) + 2, 14)
+
+            # Define the financial year start and end dates
+            financial_year_start = datetime(2023, 4, 1)
+            financial_year_end = datetime(2024, 3, 31)
+
+            # Iterate over each date within the financial year
+            current_date = financial_year_start
+            while current_date <= financial_year_end:
+                # Create a new row for each date
+                row = [current_date.strftime('%d-%m-%Y'), '', '', '', '', '', '', '',
+                       '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']
+                new_sheet.append(row)
+
+                # Move to the next date
+                current_date += timedelta(days=1)
+            workbook.save(file_path)
+
+            coll_name = ['FARMER', 'VEHICALS',
+                         'SHOP', 'OTHER EXPENSE', 'VOUCHERS']
+            for row in range(3, 369):
+                if 'FARMER' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "F*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
+                    new_sheet[f'G{row}'] = sum_of_amount
+
+                if 'VEHICALS' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "V*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
+                    new_sheet[f'I{row}'] = sum_of_amount
+
+                if 'SHOP' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "S*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
+                    new_sheet[f'K{row}'] = sum_of_amount
+
+                if 'OTHER EXPENSE' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "O*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
+                    new_sheet[f'M{row}'] = sum_of_amount
+
+                if 'VOUCHERS' in coll_name:
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
+                    new_sheet[f'O{row}'] = sum_of_amount
+
+            # cloasing balance
+            for row in range(3, 369):
+                closing_balance = f'=SUM(B{row},C{row},G{row},I{row},K{row},M{row},O{row}) - D{row}'
+                new_sheet[f'E{row}'] = closing_balance
+
+            # Add the formula to the "B" column (opening_balance column) from B4 to B368
+            for row in range(4, 369):
+                formula = f'=IF(E{row - 1}<>0, E{row - 1}, IFERROR(INDEX(E3:E${row - 1}, MATCH(1, E3:E${row - 1}<>0, 0)), LOOKUP(2, 1/(E3:E${row - 1}<>0), E3:E${row - 1})))'
+                new_sheet[f'B{row}'] = formula
+            # Define a function to convert Excel column letters to column index
+
+            def col_letter_to_index(col_letter):
+                result = 0
+                for letter in col_letter:
+                    result = result * 26 + (ord(letter) - ord('A') + 1)
+                return result
+
+            # Format the columns
+            columns_to_format = ['B', 'C', 'D', 'E', 'G', 'I', 'K', 'M', 'O']
+
+            for col_letter in columns_to_format:
+                col_index = col_letter_to_index(col_letter)
+                # Format the columns to display two decimal places
+                for row in new_sheet.iter_rows(min_row=3, max_row=369, min_col=col_index, max_col=col_index):
+                    for cell in row:
+                        cell.number_format = '0.00'
+
+            # Freeze the top row (column names) when scrolling
+            new_sheet.freeze_panes = "A3"
+
+            # Save the updated Excel file again
+            workbook.save(file_path)
+
+            return JsonResponse({'message': f'Successfully Created sheet with Data & Formulas'}, status=status.HTTP_200_OK)
         except FileNotFoundError as e:
             return JsonResponse({'error': 'File not found'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
