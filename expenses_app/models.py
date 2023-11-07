@@ -7,6 +7,7 @@ class ExcelData(models.Model):
     id = models.IntegerField(primary_key=True)
     description = models.TextField(max_length=255)
     payment_mode = models.TextField(max_length=50)
+    bank = models.TextField(max_length=60)
     amount = models.DecimalField(max_digits=25, decimal_places=2)
     complaint = models.TextField(max_length=255)
 
