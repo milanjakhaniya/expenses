@@ -269,7 +269,7 @@ def create_daily_summary_sheet(request, sheet_name):
                     new_sheet[f'M{row}'] = sum_of_amount
 
                 if 'VOUCHERS' in coll_name:
-                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}), "")'
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "W*", Raw_data_01!A:A, $A{row}), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
 
             # cloasing balance
@@ -435,7 +435,7 @@ def cash_payment(request, sheet_name):
                     new_sheet[f'M{row}'] = sum_of_amount
 
                 if 'VOUCHERS' in coll_name:
-                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "W*", Raw_data_01!A:A, $A{row}, Raw_data_01!F:F, "cash"), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
 
             # cloasing balance
@@ -596,7 +596,7 @@ def hdfc_payment(request, sheet_name):
                     new_sheet[f'M{row}'] = sum_of_amount
 
                 if 'VOUCHERS' in coll_name:
-                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "W*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "hdfc"), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
 
             # cloasing balance
@@ -757,7 +757,7 @@ def idbi_payment(request, sheet_name):
                     new_sheet[f'M{row}'] = sum_of_amount
 
                 if 'VOUCHERS' in coll_name:
-                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "W*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "idbi"), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
 
             # cloasing balance
@@ -918,7 +918,7 @@ def icici_payment(request, sheet_name):
                     new_sheet[f'M{row}'] = sum_of_amount
 
                 if 'VOUCHERS' in coll_name:
-                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "VS*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
+                    sum_of_amount = f'=IF($A{row}<>"", SUMIFS(Raw_data_01!H:H, Raw_data_01!C:C, "W*", Raw_data_01!A:A, $A{row}, Raw_data_01!G:G, "icici"), "")'
                     new_sheet[f'O{row}'] = sum_of_amount
 
             # cloasing balance

@@ -47,7 +47,7 @@ You can customize the request bodies and endpoints as needed for your applicatio
 - "V" for vehicles
 - "S" for shops
 - "O" for other expenses
-- "VS" for vouchers
+- "W" for vouchers
 
 Feel free to adapt this README to suit your project's requirements and include any additional information or installation instructions if necessary.
 ```
